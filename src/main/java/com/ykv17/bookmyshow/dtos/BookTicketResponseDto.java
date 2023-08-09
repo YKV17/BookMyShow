@@ -1,5 +1,6 @@
 package com.ykv17.bookmyshow.dtos;
 
+import com.ykv17.bookmyshow.enums.ResponseStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,4 +13,6 @@ public class BookTicketResponseDto {
     private Long ticketId;
     private List<String> seatNumbers;
     private String auditoriumName;
+    private String message;
+    private ResponseStatus status;
 }

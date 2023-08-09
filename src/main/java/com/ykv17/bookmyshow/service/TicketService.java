@@ -8,6 +8,8 @@ import com.ykv17.bookmyshow.models.*;
 import com.ykv17.bookmyshow.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,7 +34,8 @@ public class TicketService {
         this.ticketRepository = ticketRepository;
     }
 
-    public Ticket bookTicket(List<Long> seatIds, Long showId, Long userId) throws Exception {
+
+    public Ticket bookTicket(List<Long> seatIds, Long showId, Long userId) throws SeatNotAvailableException, InvalidArgumentException {
         //1. for the seatIds get the corresponding showseats.
         //2. check the status of all the seats.
         //2.a. every seat is available.
@@ -49,20 +52,8 @@ public class TicketService {
             );
         }
         Event event = eventOptional.get();
-        List<ShowSeat> showSeats = showSeatRepository.findAllBySeatInAndEvent(seats, event);
 
-        for (ShowSeat showSeat : showSeats) {
-            if (!showSeat.getShowSeatStatus().equals(ShowSeatStatus.AVAILABLE)) {
-                throw new SeatNotAvailableException();
-            }
-        }
-
-        List<ShowSeat> savedShowSeats = new ArrayList<>();
-        for (ShowSeat showSeat : showSeats) {
-            showSeat.setShowSeatStatus(ShowSeatStatus.LOCKED);
-            showSeat.setLockedAt(new Date());
-            savedShowSeats.add(showSeatRepository.save(showSeat));
-        }
+        lockCheckAndUpdateShowSeatStatusIfAvailable(seats, event);
 
         Optional<User> userOptional = userRepository.findById(userId);
 
@@ -81,5 +72,24 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
 
         return savedTicket;
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE, timeout = 10)
+    public void lockCheckAndUpdateShowSeatStatusIfAvailable(List<Seat> seats, Event event) throws SeatNotAvailableException {
+        List<ShowSeat> showSeats = showSeatRepository.findAllBySeatInAndEvent(seats, event);
+
+        for (ShowSeat showSeat : showSeats) {
+            if (!(showSeat.getShowSeatStatus().equals(ShowSeatStatus.AVAILABLE) ||
+                    showSeat.getShowSeatStatus().equals(ShowSeatStatus.LOCKED) && (new Date().getTime() - showSeat.getLockedAt().getTime()) > 15 * 60 * 1000L)) {
+                throw new SeatNotAvailableException();
+            }
+        }
+
+        List<ShowSeat> savedShowSeats = new ArrayList<>();
+        for (ShowSeat showSeat : showSeats) {
+            showSeat.setShowSeatStatus(ShowSeatStatus.LOCKED);
+            showSeat.setLockedAt(new Date());
+            savedShowSeats.add(showSeatRepository.save(showSeat));
+        }
     }
 }
