@@ -1,10 +1,11 @@
 package com.ykv17.bookmyshow;
 
+import com.ykv17.bookmyshow.controller.MovieController;
 import com.ykv17.bookmyshow.controller.UserController;
-import com.ykv17.bookmyshow.dtos.UserLoginRequestDto;
-import com.ykv17.bookmyshow.dtos.UserLoginResponseDto;
+import com.ykv17.bookmyshow.dtos.*;
 import com.ykv17.bookmyshow.enums.Pages;
 import com.ykv17.bookmyshow.enums.ResponseStatus;
+import com.ykv17.bookmyshow.models.Movie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -19,6 +20,7 @@ import java.util.Stack;
 public class BookMyShowApplication implements CommandLineRunner {
 
     private UserController userController;
+    private MovieController movieController;
 
     private final Pages[] pages = Pages.values();
     Pages currentPage = Pages.MAIN;
@@ -28,8 +30,9 @@ public class BookMyShowApplication implements CommandLineRunner {
     private Stack<Pages> historyPages = new Stack<>();
 
     @Autowired
-    public BookMyShowApplication(UserController userController) {
+    public BookMyShowApplication(UserController userController, MovieController movieController) {
         this.userController = userController;
+        this.movieController = movieController;
     }
 
     public static void main(String[] args) {
@@ -38,18 +41,11 @@ public class BookMyShowApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        /*UserSignUpRequestDto userSignUpRequestDto = new UserSignUpRequestDto();
-        userSignUpRequestDto.setEmail("yogeshvrma007@gmail.com");
-        userSignUpRequestDto.setPassword("p@$$word@123");
-        userSignUpRequestDto.setName("Yogesh");
-        userSignUpRequestDto.setPhoneNo("7891770668");
-        userSignUpRequestDto.setAge(29);
-
-        userController.signUpUser(userSignUpRequestDto);*/
         historyPages.push(Pages.MAIN);
         boolean canExist = false;
 
         UserLoginResponseDto userLoginResponseDto = null;
+        MoviesForCityResponseDto moviesForCityResponseDto = null;
 
         while (!canExist) {
 
@@ -72,7 +68,7 @@ public class BookMyShowApplication implements CommandLineRunner {
                     }
 
                     if (selectedOption == 2) {
-                        historyPages.push(Pages.LOGIN);
+                        historyPages.push(Pages.SIGNUP);
                     }
 
                     if (selectedOption == 3) {
@@ -81,6 +77,12 @@ public class BookMyShowApplication implements CommandLineRunner {
 
                 }
                 case LOGIN -> {
+                    System.out.println("Do you want to go back? (y/n)");
+                    String goBack = scanner.nextLine();
+                    if (goBack.equalsIgnoreCase("y")) {
+                        historyPages.pop();
+                        continue;
+                    }
                     System.out.println("-----------------------------LOGIN---------------------------");
                     System.out.println("Please enter your email id:");
                     String email = scanner.nextLine();
@@ -96,9 +98,9 @@ public class BookMyShowApplication implements CommandLineRunner {
                     if (userLoginResponseDto.getResponseStatus() == ResponseStatus.SUCCESS) {
                         historyPages.push(Pages.CITIES);
                     } else {
-                        if(userLoginResponseDto.getMessage().equals("Invalid email or password")){
+                        if (userLoginResponseDto.getMessage().equals("Invalid email or password")) {
                             System.out.println(userLoginResponseDto.getMessage());
-                        }else{
+                        } else {
                             System.out.println(userLoginResponseDto.getMessage());
                             System.out.println("Please sign up first");
                             historyPages.pop();
@@ -106,20 +108,103 @@ public class BookMyShowApplication implements CommandLineRunner {
                     }
                 }
                 case SIGNUP -> {
+                    System.out.println("Do you want to go back? (y/n)");
+                    String goBack = scanner.nextLine();
+                    if (goBack.equalsIgnoreCase("y")) {
+                        historyPages.pop();
+                        continue;
+                    }
+                    System.out.println("------------------------------------Sign Up-----------------------------");
+
+                    System.out.println("Please enter your name:");
+                    String name = scanner.nextLine();
+                    System.out.println("Please enter your email id:");
+                    String email = scanner.nextLine();
+                    System.out.println("Please enter your password:");
+                    String password = scanner.nextLine();
+                    System.out.println("Please enter your phone No:");
+                    String phoneNo = scanner.nextLine();
+                    System.out.println("Please enter your age:");
+                    int age = scanner.nextInt();
+                    scanner.nextLine();
+
+                    UserSignUpRequestDto userSignUpRequestDto = new UserSignUpRequestDto();
+                    userSignUpRequestDto.setEmail(email);
+                    userSignUpRequestDto.setPassword(password);
+                    userSignUpRequestDto.setName(name);
+                    userSignUpRequestDto.setPhoneNo(phoneNo);
+                    userSignUpRequestDto.setAge(age);
+
+                    UserSignUpResponseDto userSignUpResponseDto = userController.signUpUser(userSignUpRequestDto);
+
+                    if (userSignUpResponseDto.getResponseStatus().equals(ResponseStatus.SUCCESS)) {
+                        System.out.println("User successfully registered.");
+                        historyPages.pop();
+                    } else {
+                        System.out.println(userSignUpResponseDto.getMessage());
+                    }
                 }
                 case CITIES -> {
-                    if(userLoginResponseDto != null) {
-                        System.out.println("------------------------------------SELECT CITY--------------------");
+                    System.out.println("Do you want to go back? (y/n)");
+                    String goBack = scanner.nextLine();
+                    if (goBack.equalsIgnoreCase("y")) {
+                        historyPages.pop();
+                        continue;
+                    }
+                    if (userLoginResponseDto != null) {
+                        System.out.println("------------------------------------SELECT CITY-----------------------------");
                         System.out.println("Welcome " + userLoginResponseDto.getName());
 
                         System.out.println("Please enter your city:");
                         String city = scanner.nextLine();
-                    }else{
+
+                        if (city == null || city.isEmpty()) {
+                            continue;
+                        }
+
+                        MoviesForCityRequestDto moviesForCityRequestDto = new MoviesForCityRequestDto();
+                        moviesForCityRequestDto.setCityName(city);
+
+                        moviesForCityResponseDto = movieController.getMoviesForCity(moviesForCityRequestDto);
+
+                        if (moviesForCityResponseDto.getResponseStatus() == ResponseStatus.SUCCESS) {
+                            historyPages.push(Pages.MOVIES);
+                        } else {
+                            System.out.println(moviesForCityResponseDto.getMessage());
+                        }
+
+                    } else {
                         System.out.println("Something Went Wrong. Please try again");
                         historyPages.pop();
                     }
                 }
                 case MOVIES -> {
+                    System.out.println("Do you want to go back? (y/n)");
+                    String goBack = scanner.nextLine();
+                    if (goBack.equalsIgnoreCase("y")) {
+                        historyPages.pop();
+                        continue;
+                    }
+
+                    System.out.println("------------------------------------SELECT MOVIE-----------------------------");
+                    if (moviesForCityResponseDto != null) {
+                        if (moviesForCityResponseDto.getMovies() == null || moviesForCityResponseDto.getMovies().isEmpty()) {
+                            System.out.println("Currently No Movie is playing in your city");
+                            historyPages.pop();
+                        } else {
+                            System.out.println("Movies playing in your city:");
+                            for (int i = 0; i < moviesForCityResponseDto.getMovies().size(); ++i) {
+                                System.out.println((i + 1) + ". " + moviesForCityResponseDto.getMovies().get(i).getName());
+                            }
+
+                            System.out.println("Please select a movie for which you want to book tickets: (1 to " + moviesForCityResponseDto.getMovies().size() + ")");
+                            int option = scanner.nextInt();
+                            scanner.nextLine();
+                        }
+                    } else {
+                        System.out.println("Something Went Wrong. Please try again");
+                        historyPages.pop();
+                    }
                 }
                 case THEATERS -> {
                 }
