@@ -6,7 +6,7 @@ public enum Pages {
     SIGNUP,
     CITIES,
     MOVIES,
-    THEATERS,
+//    THEATERS,
     SHOWS,
     SEATS,
     BOOKING,

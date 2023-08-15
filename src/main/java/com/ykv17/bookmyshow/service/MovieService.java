@@ -20,6 +20,7 @@ public class MovieService {
     private CityRepository cityRepository;
     private CityMovieRepository cityMovieRepository;
 
+
     @Autowired
     public MovieService(CityRepository cityRepository, CityMovieRepository cityMovieRepository) {
         this.cityRepository = cityRepository;
@@ -36,23 +37,19 @@ public class MovieService {
         return cityOptional.get();
     }*/
 
-    public List<Movie> getPlayingMoviesForCity(String name, CityMovieStatus status) throws CityNotFoundException {
-        Optional<City> cityOptional = cityRepository.findCityByName(name);
+    /*@Transactional*/
+    public List<CityMovie> getPlayingMoviesForCity(String cityName, CityMovieStatus status) throws CityNotFoundException {
+        Optional<City> cityOptional = cityRepository.findCityByName(cityName);
 
-        if(cityOptional.isEmpty()){
-            throw new CityNotFoundException("No City found with the name " + name);
+        if (cityOptional.isEmpty()) {
+            throw new CityNotFoundException("No City found with the name " + cityName);
         }
 
         City city = cityOptional.get();
 
         List<CityMovie> cityMovies = cityMovieRepository.findAllByCityAndCityMovieStatus(city, status);
 
-        List<Movie> currentlyShowingMovies = new ArrayList<>();
 
-        for(CityMovie cityMovie: cityMovies){
-            currentlyShowingMovies.add(cityMovie.getMovie());
-        }
-
-        return currentlyShowingMovies;
+        return cityMovies;
     }
 }

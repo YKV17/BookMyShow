@@ -17,4 +17,16 @@ public class Auditorium extends BaseModel{
     @Enumerated(EnumType.ORDINAL)
     @ElementCollection
     private List<Feature> features;
+    @ManyToOne
+    private Theatre theatre;
+
+    @Override
+    public boolean equals(Object obj) {
+        return ((Auditorium)obj).getId() == this.getId();
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

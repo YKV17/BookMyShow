@@ -1,19 +1,21 @@
 package com.ykv17.bookmyshow;
 
 import com.ykv17.bookmyshow.controller.MovieController;
+import com.ykv17.bookmyshow.controller.ShowController;
 import com.ykv17.bookmyshow.controller.UserController;
 import com.ykv17.bookmyshow.dtos.*;
 import com.ykv17.bookmyshow.enums.Pages;
 import com.ykv17.bookmyshow.enums.ResponseStatus;
+import com.ykv17.bookmyshow.models.Event;
 import com.ykv17.bookmyshow.models.Movie;
+import com.ykv17.bookmyshow.service.ShowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
-import java.util.Scanner;
-import java.util.Stack;
+import java.util.*;
 
 @SpringBootApplication
 @EnableJpaAuditing
@@ -22,7 +24,8 @@ public class BookMyShowApplication implements CommandLineRunner {
     private UserController userController;
     private MovieController movieController;
 
-    private final Pages[] pages = Pages.values();
+    private ShowController showController;
+
     Pages currentPage = Pages.MAIN;
 
     private Scanner scanner = new Scanner(System.in);
@@ -30,9 +33,12 @@ public class BookMyShowApplication implements CommandLineRunner {
     private Stack<Pages> historyPages = new Stack<>();
 
     @Autowired
-    public BookMyShowApplication(UserController userController, MovieController movieController) {
+    public BookMyShowApplication(UserController userController,
+                                 MovieController movieController,
+                                 ShowController showController) {
         this.userController = userController;
         this.movieController = movieController;
+        this.showController = showController;
     }
 
     public static void main(String[] args) {
@@ -46,6 +52,8 @@ public class BookMyShowApplication implements CommandLineRunner {
 
         UserLoginResponseDto userLoginResponseDto = null;
         MoviesForCityResponseDto moviesForCityResponseDto = null;
+        EventForCityResponseDto eventForCityResponseDto = null;
+        Movie selectedMovie = null;
 
         while (!canExist) {
 
@@ -194,21 +202,67 @@ public class BookMyShowApplication implements CommandLineRunner {
                         } else {
                             System.out.println("Movies playing in your city:");
                             for (int i = 0; i < moviesForCityResponseDto.getMovies().size(); ++i) {
-                                System.out.println((i + 1) + ". " + moviesForCityResponseDto.getMovies().get(i).getName());
+                                System.out.println((i + 1) + ". " + moviesForCityResponseDto.getMovies().get(i).getMovie().getName());
                             }
 
                             System.out.println("Please select a movie for which you want to book tickets: (1 to " + moviesForCityResponseDto.getMovies().size() + ")");
-                            int option = scanner.nextInt();
+                            int selectedOption = scanner.nextInt();
+                            selectedMovie = moviesForCityResponseDto.getMovies().get(selectedOption - 1).getMovie();
                             scanner.nextLine();
+                            historyPages.push(Pages.SHOWS);
                         }
                     } else {
                         System.out.println("Something Went Wrong. Please try again");
                         historyPages.pop();
                     }
                 }
-                case THEATERS -> {
-                }
+                /*case THEATERS -> {
+
+
+                }*/
                 case SHOWS -> {
+                    System.out.println("Do you want to go back? (y/n)");
+                    String goBack = scanner.nextLine();
+                    if (goBack.equalsIgnoreCase("y")) {
+                        historyPages.pop();
+                        continue;
+                    }
+
+                    System.out.println("------------------------------------SELECT SHOWS-----------------------------");
+                    if(selectedMovie != null && moviesForCityResponseDto != null) {
+                        EventForCityRequestDto request = new EventForCityRequestDto();
+                        request.setCityId(moviesForCityResponseDto.getMovies().get(0).getCity().getId());
+                        request.setMovieId(selectedMovie.getId());
+                        eventForCityResponseDto = showController.getEventsForCity(request);
+
+                        if (eventForCityResponseDto.getResponseStatus() == ResponseStatus.SUCCESS) {
+
+                            Map<String, List<Event>> theaterEventMap = new HashMap<>();
+                            for(Event event: eventForCityResponseDto.getEvents()){
+                                List<Event> addedEvents = theaterEventMap.getOrDefault(event.getAuditorium().getTheatre().getAddress(), new ArrayList<>());
+                                addedEvents.add(event);
+                                theaterEventMap.put(event.getAuditorium().getTheatre().getAddress(), addedEvents);
+                            }
+
+                            for(String key: theaterEventMap.keySet()){
+                                System.out.println(key + ": ");
+
+                                for(Event event: theaterEventMap.get(key)){
+                                    System.out.println(event.getId() + ": (" + event.getLanguage() + ") " + event.getStartTime() + " - " + event.getEndTime());
+                                }
+                            }
+
+                            System.out.println("Enter the id of the show for which you want to book tickets:");
+
+                            historyPages.push(Pages.SEATS);
+                        } else {
+                            System.out.println(eventForCityResponseDto.getMessage());
+                        }
+                    }else{
+                        System.out.println("Something Went Wrong. Please try again");
+                        historyPages.pop();
+                    }
+
                 }
                 case SEATS -> {
                 }

@@ -1,14 +1,15 @@
 package com.ykv17.bookmyshow.repository;
 
 import com.ykv17.bookmyshow.models.City;
+import com.ykv17.bookmyshow.models.Theatre;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.List;
 
 @Repository
-public interface CityRepository extends JpaRepository<City, Long> {
+public interface TheaterRepository extends JpaRepository<Theatre, Long> {
 
-    Optional<City> findCityByName(String name);
-    Optional<City> findCityById(int name);
+    List<Theatre> findAllByCity(City city);
+
 }
