@@ -15,5 +15,7 @@ public interface ShowSeatRepository extends JpaRepository<ShowSeat, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<ShowSeat> findAllBySeatInAndEvent(List<Seat> seats, Event event);
 
+    List<ShowSeat> findAllByEvent(Event event);
+
     ShowSeat save(ShowSeat showSeat);
 }

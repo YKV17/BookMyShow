@@ -1,6 +1,7 @@
 package com.ykv17.bookmyshow;
 
 import com.ykv17.bookmyshow.controller.MovieController;
+import com.ykv17.bookmyshow.controller.SeatController;
 import com.ykv17.bookmyshow.controller.ShowController;
 import com.ykv17.bookmyshow.controller.UserController;
 import com.ykv17.bookmyshow.dtos.*;
@@ -8,6 +9,7 @@ import com.ykv17.bookmyshow.enums.Pages;
 import com.ykv17.bookmyshow.enums.ResponseStatus;
 import com.ykv17.bookmyshow.models.Event;
 import com.ykv17.bookmyshow.models.Movie;
+import com.ykv17.bookmyshow.models.ShowSeat;
 import com.ykv17.bookmyshow.service.ShowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -25,6 +27,7 @@ public class BookMyShowApplication implements CommandLineRunner {
     private MovieController movieController;
 
     private ShowController showController;
+    private SeatController seatController;
 
     Pages currentPage = Pages.MAIN;
 
@@ -35,10 +38,12 @@ public class BookMyShowApplication implements CommandLineRunner {
     @Autowired
     public BookMyShowApplication(UserController userController,
                                  MovieController movieController,
-                                 ShowController showController) {
+                                 ShowController showController,
+                                 SeatController seatController) {
         this.userController = userController;
         this.movieController = movieController;
         this.showController = showController;
+        this.seatController = seatController;
     }
 
     public static void main(String[] args) {
@@ -53,7 +58,9 @@ public class BookMyShowApplication implements CommandLineRunner {
         UserLoginResponseDto userLoginResponseDto = null;
         MoviesForCityResponseDto moviesForCityResponseDto = null;
         EventForCityResponseDto eventForCityResponseDto = null;
+        ShowSeatResponseDto showSeatResponseDto = null;
         Movie selectedMovie = null;
+        long showId = -1;
 
         while (!canExist) {
 
@@ -229,7 +236,7 @@ public class BookMyShowApplication implements CommandLineRunner {
                     }
 
                     System.out.println("------------------------------------SELECT SHOWS-----------------------------");
-                    if(selectedMovie != null && moviesForCityResponseDto != null) {
+                    if (selectedMovie != null && moviesForCityResponseDto != null) {
                         EventForCityRequestDto request = new EventForCityRequestDto();
                         request.setCityId(moviesForCityResponseDto.getMovies().get(0).getCity().getId());
                         request.setMovieId(selectedMovie.getId());
@@ -238,33 +245,93 @@ public class BookMyShowApplication implements CommandLineRunner {
                         if (eventForCityResponseDto.getResponseStatus() == ResponseStatus.SUCCESS) {
 
                             Map<String, List<Event>> theaterEventMap = new HashMap<>();
-                            for(Event event: eventForCityResponseDto.getEvents()){
+                            for (Event event : eventForCityResponseDto.getEvents()) {
                                 List<Event> addedEvents = theaterEventMap.getOrDefault(event.getAuditorium().getTheatre().getAddress(), new ArrayList<>());
                                 addedEvents.add(event);
                                 theaterEventMap.put(event.getAuditorium().getTheatre().getAddress(), addedEvents);
                             }
 
-                            for(String key: theaterEventMap.keySet()){
+                            for (String key : theaterEventMap.keySet()) {
                                 System.out.println(key + ": ");
 
-                                for(Event event: theaterEventMap.get(key)){
-                                    System.out.println(event.getId() + ": (" + event.getLanguage() + ") " + event.getStartTime() + " - " + event.getEndTime());
+                                for (Event event : theaterEventMap.get(key)) {
+                                    System.out.println("\t" + event.getId() + ": (" + event.getLanguage() + ") " + event.getStartTime() + " - " + event.getEndTime());
                                 }
                             }
 
                             System.out.println("Enter the id of the show for which you want to book tickets:");
+                            showId = scanner.nextInt();
+                            scanner.nextLine();
+
 
                             historyPages.push(Pages.SEATS);
                         } else {
                             System.out.println(eventForCityResponseDto.getMessage());
                         }
-                    }else{
+                    } else {
                         System.out.println("Something Went Wrong. Please try again");
                         historyPages.pop();
                     }
 
                 }
                 case SEATS -> {
+                    System.out.println("Do you want to go back? (y/n)");
+                    String goBack = scanner.nextLine();
+                    if (goBack.equalsIgnoreCase("y")) {
+                        historyPages.pop();
+                        continue;
+                    }
+
+                    if (showId != -1) {
+
+                        ShowSeatRequestDto showSeatRequestDto = new ShowSeatRequestDto();
+                        showSeatRequestDto.setEventId(showId);
+                        showSeatResponseDto = seatController.getSeatsForShow(showSeatRequestDto);
+
+                        if (showSeatResponseDto.getResponseStatus() == ResponseStatus.SUCCESS) {
+                            int r = 0;
+                            int c = 0;
+                            ShowSeat[][] showSeats = new ShowSeat[5][5];
+
+                            for (int i = 0; i < showSeatResponseDto.getShowSeats().size(); i++) {
+                                showSeats[r][c] = showSeatResponseDto.getShowSeats().get(i);
+
+                                c++;
+                                c = c % 5;
+
+                                if(c == 0){
+                                    r++;
+                                }
+                            }
+
+                            for(int i = 0; i < showSeats.length; i++){
+                                for(int j = 0; j < showSeats.length; j++){
+                                    ShowSeat seat = showSeats[i][j];
+                                    switch (seat.getShowSeatStatus()){
+
+                                        case AVAILABLE -> {
+                                            System.out.print("[" + seat.getSeat().getSeatType().getName().charAt(0) + ": " + " " + "]");
+                                        }
+                                        case BOOKED -> {
+                                            System.out.print("[" + seat.getSeat().getSeatType().getName().charAt(0) + ": " + "X" + "]");
+                                        }
+                                        case LOCKED -> {
+                                            System.out.print(" " + " " + "  " + " " + " ");
+                                        }
+                                    }
+
+                                }
+                                System.out.println("\n");
+                            }
+
+                        } else {
+                            System.out.println("Something Went Wrong. Please try again");
+                            historyPages.pop();
+                        }
+
+                    } else {
+                        historyPages.pop();
+                    }
                 }
                 case BOOKING -> {
                 }
