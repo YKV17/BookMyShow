@@ -321,9 +321,33 @@ public class BookMyShowApplication implements CommandLineRunner {
                                     }
 
                                 }
+                                System.out.println("");
+                                for(int j = 0; j < showSeats.length; j++){
+                                    ShowSeat seat = showSeats[i][j];
+                                    switch (seat.getShowSeatStatus()){
+
+                                        case AVAILABLE -> {
+                                            System.out.print(" " + seat.getSeat().getSeatNumber() + "  " + " " + " ");
+                                        }
+                                        case BOOKED -> {
+                                            System.out.print(" " + seat.getSeat().getSeatNumber() + "  " + " " + " ");
+                                        }
+                                        case LOCKED -> {
+                                            System.out.print(" " + " " + "  " + " " + " ");
+                                        }
+                                    }
+
+                                }
                                 System.out.println("\n");
                             }
 
+                            System.out.println("\n");
+                            System.out.println("-------------------SCREEN-------------------");
+
+                            System.out.println("V: VIP");
+                            System.out.println("P: PREMIUM");
+                            System.out.println("E: EXECUTIVE");
+                            System.out.println("N: NORMAL");
                         } else {
                             System.out.println("Something Went Wrong. Please try again");
                             historyPages.pop();
