@@ -1,6 +1,6 @@
 [![Yogesh LinkedIn](https://img.shields.io/badge/Yogesh-LinkedIn-blue.svg?style=for-the-badge)](https://www.linkedin.com/in/yogesh-verma-221375116/)
 
-# BookMyShow [A Movie Booking Platform](https://in.bookmyshow.com/)
+# BookMyShow ([A Movie Booking Platform](https://in.bookmyshow.com/))
 BookMyShow is a platform that enables users to register within the system. Users can log in, view movies currently playing in their city, and book tickets for the desired movie.
 
 ## Requirements
