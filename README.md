@@ -19,3 +19,6 @@ BookMyShow is a platform that enables users to register within the system. Users
 **Limitations**
 1. The system is customer-facing only.
 2. Only registered users can currently book tickets.
+
+## Usecase Diagram
+![Alt use-case diagram](https://github.com/YKV17/BookMyShow/blob/master/BookMyShow.drawio.png)
